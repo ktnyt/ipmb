@@ -145,3 +145,53 @@ func (r *Relay) TestData() (err error) {
 
 	return nil
 }
+
+func (r *Relay) Spin() {
+	wait := make(chan *struct{})
+
+	go (func() {
+		notified := false
+		testing := false
+
+		for {
+			if testing {
+				continue
+			}
+
+			go (func() {
+				testing = true
+				r.TestPing()
+				testing = false
+
+				if !notified {
+					notified = true
+					wait <- nil
+				}
+			})()
+		}
+	})()
+
+	go (func() {
+		notified := false
+		testing := false
+
+		for {
+			if testing {
+				continue
+			}
+
+			go (func() {
+				testing = true
+				r.TestData()
+				testing = false
+
+				if !notified {
+					notified = true
+					wait <- nil
+				}
+			})()
+		}
+	})()
+
+	<-wait
+}
